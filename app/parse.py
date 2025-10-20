@@ -3,7 +3,7 @@ import time
 from dataclasses import dataclass, fields
 from urllib.parse import urljoin
 from selenium import webdriver
-from selenium.common import TimeoutException
+from selenium.common import TimeoutException, NoSuchElementException
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
@@ -48,13 +48,13 @@ def extract_products(driver: WebDriver) -> list[Product]:
 
         try:
             price_text = item.find_element(By.CSS_SELECTOR, "span[itemprop='price']").text
-        except:
+        except NoSuchElementException:
             price_text = item.find_element(By.CSS_SELECTOR, "h4.price").text
         price = float(price_text.replace("$", ""))
 
         try:
             rating = int(item.find_element(By.CSS_SELECTOR, "p[data-rating]").get_attribute("data-rating"))
-        except:
+        except NoSuchElementException:
             rating = len(item.find_elements(By.CSS_SELECTOR, ".ws-icon.ws-icon-star"))
 
         num_of_reviews = int(item.find_element(By.CSS_SELECTOR, "span[itemprop='reviewCount']").text)
