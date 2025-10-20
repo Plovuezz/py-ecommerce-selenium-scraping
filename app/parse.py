@@ -28,68 +28,17 @@ LAPTOPS_URL = urljoin(COMPUTERS_URL, "./laptops/")
 TABLETS_URL = urljoin(COMPUTERS_URL, "./tablets/")
 TOUCH_URL = urljoin(PHONES_URL, "./touch/")
 
-
-def parse_page(driver: WebDriver, page_url: str) -> list[Product]:
-    wait = WebDriverWait(driver, 1)
-    driver.get(page_url)
-
-    try:
-        button = wait.until(
-            ec.element_to_be_clickable((By.CLASS_NAME, "acceptCookies"))
-        )
-        button.click()
-    except TimeoutException:
-        pass
-
-    products = []
-    captions = driver.find_elements(By.CLASS_NAME, "product-wrapper")
-    for caption in captions:
-        products.append(
-            Product(
-                title=caption.find_element(
-                    By.CLASS_NAME, "title"
-                ).get_attribute("title"),
-                description=caption.find_element(
-                    By.CLASS_NAME, "description"
-                ).text,
-                price=float(caption.find_element(
-                    By.CSS_SELECTOR, "span[itemprop='price']"
-                ).text.replace("$", "")),
-                rating=int(caption.find_element(
-                    By.CSS_SELECTOR, "p[data-rating]"
-                ).get_attribute("data-rating")),
-                num_of_reviews=int(caption.find_element(
-                    By.CSS_SELECTOR, "span[itemprop='reviewCount']"
-                ).text),
-            )
-        )
-    return products
+TEST_LIST = (
+    (HOME_URL, "home.csv", False),
+    (COMPUTERS_URL, "computers.csv", False),
+    (PHONES_URL, "phones.csv", False),
+    (TABLETS_URL, "tablets.csv", True),
+    (TOUCH_URL, "touch.csv", True),
+    (LAPTOPS_URL, "laptops.csv", True),
+)
 
 
-def parse_paginated_page(driver: WebDriver, page_url: str) -> list[Product]:
-    wait = WebDriverWait(driver, 1)
-    driver.get(page_url)
-
-    try:
-        button = wait.until(ec.element_to_be_clickable(
-            (By.CLASS_NAME, "acceptCookies")
-        ))
-        button.click()
-    except TimeoutException:
-        pass
-
-    while True:
-        try:
-            more_button = WebDriverWait(driver, 1).until(
-                ec.element_to_be_clickable(
-                    (By.CLASS_NAME, "ecomerce-items-scroll-more")
-                )
-            )
-            more_button.click()
-            time.sleep(1.5)
-        except TimeoutException:
-            break
-
+def get_paginated_products(driver: WebDriver) -> list[Product]:
     products = []
     captions = driver.find_elements(By.CLASS_NAME, "product-wrapper")
     for caption in captions:
@@ -115,6 +64,74 @@ def parse_paginated_page(driver: WebDriver, page_url: str) -> list[Product]:
     return products
 
 
+def get_products(driver: WebDriver) -> list[Product]:
+    products = []
+    captions = driver.find_elements(By.CLASS_NAME, "product-wrapper")
+    for caption in captions:
+        products.append(
+            Product(
+                title=caption.find_element(
+                    By.CLASS_NAME, "title"
+                ).get_attribute("title"),
+                description=caption.find_element(
+                    By.CLASS_NAME, "description"
+                ).text,
+                price=float(caption.find_element(
+                    By.CSS_SELECTOR, "span[itemprop='price']"
+                ).text.replace("$", "")),
+                rating=int(caption.find_element(
+                    By.CSS_SELECTOR, "p[data-rating]"
+                ).get_attribute("data-rating")),
+                num_of_reviews=int(caption.find_element(
+                    By.CSS_SELECTOR, "span[itemprop='reviewCount']"
+                ).text),
+            )
+        )
+    return products
+
+
+def parse_page(driver: WebDriver, page_url: str) -> list[Product]:
+    wait = WebDriverWait(driver, 5)
+    driver.get(page_url)
+
+    try:
+        button = wait.until(
+            ec.element_to_be_clickable((By.CLASS_NAME, "acceptCookies"))
+        )
+        button.click()
+    except TimeoutException:
+        pass
+
+    return get_products(driver)
+
+
+def parse_paginated_page(driver: WebDriver, page_url: str) -> list[Product]:
+    wait = WebDriverWait(driver, 5)
+    driver.get(page_url)
+
+    try:
+        button = wait.until(ec.element_to_be_clickable(
+            (By.CLASS_NAME, "acceptCookies")
+        ))
+        button.click()
+    except TimeoutException:
+        pass
+
+    while True:
+        try:
+            more_button = WebDriverWait(driver, 5).until(
+                ec.element_to_be_clickable(
+                    (By.CLASS_NAME, "ecomerce-items-scroll-more")
+                )
+            )
+            more_button.click()
+            time.sleep(1.5)
+        except TimeoutException:
+            break
+
+    return get_paginated_products(driver)
+
+
 def make_tuple(product: Product) -> tuple:
     return tuple(
         [
@@ -127,7 +144,7 @@ def make_tuple(product: Product) -> tuple:
     )
 
 
-def get_all_products(scrape_list: list[tuple]) -> None:
+def get_all_products(scrape_list: tuple[tuple] = TEST_LIST) -> None:
     driver = webdriver.Chrome()
     try:
         for page, file_name, paginated in scrape_list:
@@ -145,13 +162,4 @@ def get_all_products(scrape_list: list[tuple]) -> None:
 
 
 if __name__ == "__main__":
-    get_all_products(
-        [
-            (HOME_URL, "home.csv", False),
-            (COMPUTERS_URL, "computers.csv", False),
-            (PHONES_URL, "phones.csv", False),
-            (TABLETS_URL, "tablets.csv", True),
-            (TOUCH_URL, "touch.csv", True),
-            (LAPTOPS_URL, "laptops.csv", True),
-        ]
-    )
+    get_all_products()
